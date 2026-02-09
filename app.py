@@ -1,17 +1,38 @@
 from flask import Flask, render_template_string, request, redirect, session
 import json
 import os
+import sqlite3
 
 app = Flask(__name__)
 app.secret_key = "clave_secreta"
 
 ARCHIVO_INVENTARIO = "inventario.json"
 
-usuarios = {
-    "admin": {"password": "admin123", "rol": "admin"},
-    "alumno1": {"password": "1234", "rol": "alumno"}
+# -------- BASE DE DATOS USUARIOS --------
+def get_db():
+    return sqlite3.connect("usuarios.db")
+
+def init_db():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS usuarios (
+        usuario TEXT PRIMARY KEY,
+        password TEXT,
+        rol TEXT
+    )
+    """)
+    conn.commit()
+    conn.close()
+
+init_db()
+
+# -------- ADMINS (solo aquí se agregan) --------
+admins = {
+    "admin": "admin123"
 }
 
+# -------- INVENTARIO --------
 def cargar_inventario():
     if os.path.exists(ARCHIVO_INVENTARIO):
         with open(ARCHIVO_INVENTARIO, "r") as f:
@@ -28,20 +49,34 @@ def guardar_inventario():
 
 inventario = cargar_inventario()
 
-
+# -------- LOGIN --------
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         user = request.form["usuario"]
         password = request.form["password"]
 
-        if user in usuarios and usuarios[user]["password"] == password:
+        # Revisar admins primero
+        if user in admins and admins[user] == password:
             session["usuario"] = user
-            session["rol"] = usuarios[user]["rol"]
-            print(f"{user} inició sesión")
+            session["rol"] = "admin"
+            print(f"ADMIN {user} inició sesión")
             return redirect("/inventario")
-        else:
-            return "Usuario o contraseña incorrectos"
+
+        # Revisar alumnos en base de datos
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM usuarios WHERE usuario=? AND password=?", (user, password))
+        resultado = cursor.fetchone()
+        conn.close()
+
+        if resultado:
+            session["usuario"] = user
+            session["rol"] = "alumno"
+            print(f"ALUMNO {user} inició sesión")
+            return redirect("/inventario")
+
+        return "Usuario o contraseña incorrectos"
 
     return """
     <h2>Login</h2>
@@ -50,9 +85,42 @@ def login():
         Contraseña: <input name="password" type="password"><br><br>
         <button type="submit">Entrar</button>
     </form>
+    <br>
+    <a href="/registro">Crear cuenta de alumno</a>
     """
 
+# -------- REGISTRO ALUMNOS --------
+@app.route("/registro", methods=["GET", "POST"])
+def registro():
+    if request.method == "POST":
+        user = request.form["usuario"]
+        password = request.form["password"]
 
+        conn = get_db()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute(
+                "INSERT INTO usuarios (usuario, password, rol) VALUES (?, ?, ?)",
+                (user, password, "alumno")
+            )
+            conn.commit()
+            conn.close()
+            return redirect("/")
+        except:
+            conn.close()
+            return "Ese usuario ya existe"
+
+    return """
+    <h2>Registro de alumno</h2>
+    <form method="post">
+        Usuario: <input name="usuario"><br>
+        Contraseña: <input name="password" type="password"><br><br>
+        <button type="submit">Crear cuenta</button>
+    </form>
+    """
+
+# -------- LOGOUT --------
 @app.route("/logout")
 def logout():
     usuario = session.get("usuario", "")
@@ -60,7 +128,7 @@ def logout():
     print(f"{usuario} cerró sesión")
     return redirect("/")
 
-
+# -------- INVENTARIO --------
 @app.route("/inventario")
 def ver_inventario():
     if "usuario" not in session:
@@ -123,7 +191,7 @@ def ver_inventario():
                                   usuario=session["usuario"],
                                   rol=session["rol"])
 
-
+# -------- PANEL ADMIN --------
 @app.route("/admin", methods=["GET", "POST"])
 def panel_admin():
     if "usuario" not in session or session["rol"] != "admin":
@@ -194,7 +262,7 @@ def panel_admin():
 
     return render_template_string(html, inventario=inventario)
 
-
+# -------- RESTO FUNCIONES --------
 @app.route("/editar/<int:id>", methods=["POST"])
 def editar(id):
     if session["rol"] != "admin":
@@ -268,5 +336,4 @@ def actualizar(id):
 
 if __name__ == "__main__":
     app.run()
-
 
