@@ -1,0 +1,11 @@
+[
+    {
+        "id": 0,
+        "nombre": "Probetas",
+        "cantidad": 10,
+        "categoria": "Consumible",
+        "estado": "blanco",
+        "solicitado": 0,
+        "usuario": ""
+    }
+]

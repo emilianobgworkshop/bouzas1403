@@ -1,0 +1,30 @@
+[
+    {
+        "usuario": "admin",
+        "accion": "Sum\u00f3",
+        "objeto": "Probetas",
+        "cantidad": 1,
+        "fecha": "2026-02-08 20:05:06"
+    },
+    {
+        "usuario": "admin",
+        "accion": "Sum\u00f3",
+        "objeto": "Probetas",
+        "cantidad": 1,
+        "fecha": "2026-02-08 20:05:07"
+    },
+    {
+        "usuario": "admin",
+        "accion": "Rest\u00f3",
+        "objeto": "Probetas",
+        "cantidad": 1,
+        "fecha": "2026-02-08 20:05:08"
+    },
+    {
+        "usuario": "admin",
+        "accion": "Rest\u00f3",
+        "objeto": "Probetas",
+        "cantidad": 1,
+        "fecha": "2026-02-08 20:05:08"
+    }
+]
