@@ -266,4 +266,7 @@ def actualizar(id):
     return redirect("/inventario")
 
 
-app.run(debug=True)
+if __name__ == "__main__":
+    app.run()
+
+
